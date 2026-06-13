@@ -38,7 +38,7 @@ export async function submitProduct(
     return { error: parsed };
   }
 
-  const product = await prisma.$transaction(async (tx) => {
+  const product = await prisma.$transaction(async (tx: any) => {
     const createdProduct = await tx.product.create({
       data: {
         slug: await uniqueSlug(parsed.name),
@@ -88,7 +88,7 @@ export async function updateProductDraft(
     return { error: parsed };
   }
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     const draft = await tx.productDraft.create({
       data: {
         productId,

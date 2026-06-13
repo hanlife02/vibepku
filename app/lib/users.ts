@@ -8,7 +8,7 @@ type UpsertGitHubUserInput = {
 };
 
 export async function upsertGitHubUser(input: UpsertGitHubUserInput) {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: any) => {
     const existing = await tx.user.findUnique({
       where: { githubId: input.githubId },
     });
