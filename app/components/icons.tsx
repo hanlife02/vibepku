@@ -1,0 +1,33 @@
+import {
+  ArrowUpRight,
+  Check,
+  Code2,
+  ExternalLink,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  Pencil,
+  Plus,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  X,
+} from "lucide-react";
+
+export const Icons = {
+  ArrowUpRight,
+  Check,
+  ExternalLink,
+  Github: Code2,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  Pencil,
+  Plus,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  X,
+};

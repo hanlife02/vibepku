@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String    @id @default(cuid())
+  githubId    String    @unique
+  username    String
+  name        String?
+  avatarUrl   String?
+  role        String    @default("USER")
+  bannedAt    DateTime?
+  banReason   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  sessions    Session[]
+  submissions Product[] @relation("ProductSubmitter")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Product {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  status        String        @default("PENDING_REVIEW")
+  featured      Boolean       @default(false)
+  submitterId   String
+  submitter     User          @relation("ProductSubmitter", fields: [submitterId], references: [id])
+  published     ProductDraft? @relation("PublishedDraft", fields: [publishedId], references: [id])
+  publishedId   String?       @unique
+  pendingDraft  ProductDraft? @relation("PendingDraft", fields: [pendingDraftId], references: [id])
+  pendingDraftId String?      @unique
+  adminNote     String?
+  reviewedAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  drafts         ProductDraft[] @relation("ProductDrafts")
+
+  @@index([status, featured, updatedAt])
+  @@index([submitterId])
+}
+
+model ProductDraft {
+  id           String   @id @default(cuid())
+  productId    String
+  product      Product  @relation("ProductDrafts", fields: [productId], references: [id], onDelete: Cascade)
+  name         String
+  tagline      String
+  websiteUrl   String
+  logoUrl      String
+  imageUrls    String
+  demoVideoUrl String?
+  category     String
+  tags         String
+  tools        String
+  buildStory   String
+  createdAt    DateTime @default(now())
+  publishedFor Product?  @relation("PublishedDraft")
+  pendingFor   Product?  @relation("PendingDraft")
+
+  @@index([productId])
+}

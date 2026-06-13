@@ -1,0 +1,10 @@
+.next
+.cache
+node_modules
+app/generated
+tsconfig.tsbuildinfo
+*.db
+*.db-journal
+.env
+.env*.local
+prisma/dev.db
