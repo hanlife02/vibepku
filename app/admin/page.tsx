@@ -131,6 +131,13 @@ export default async function AdminPage() {
                         </button>
                       </form>
                       <form action={rejectProduct.bind(null, product.id)}>
+                        <input
+                          className="input"
+                          name="adminNote"
+                          placeholder="驳回原因"
+                          required
+                          style={{ minWidth: 160, padding: '8px 10px', fontSize: 12 }}
+                        />
                         <button className="btn-danger" type="submit" style={{ padding: '8px 16px' }}>
                           <Icons.X size={14} />
                           驳回
