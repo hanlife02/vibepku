@@ -7,6 +7,44 @@ type UpsertGitHubUserInput = {
   avatarUrl?: string | null;
 };
 
+type UpsertCasdoorUserInput = {
+  casdoorId: string;
+  username: string;
+  name?: string | null;
+  avatarUrl?: string | null;
+};
+
+export async function upsertCasdoorUser(input: UpsertCasdoorUserInput) {
+  return prisma.$transaction(async (tx: any) => {
+    const existing = await tx.user.findUnique({
+      where: { casdoorId: input.casdoorId },
+    });
+
+    if (existing) {
+      return tx.user.update({
+        where: { id: existing.id },
+        data: {
+          username: input.username,
+          name: input.name,
+          avatarUrl: input.avatarUrl,
+        },
+      });
+    }
+
+    const userCount = await tx.user.count();
+
+    return tx.user.create({
+      data: {
+        casdoorId: input.casdoorId,
+        username: input.username,
+        name: input.name,
+        avatarUrl: input.avatarUrl,
+        role: userCount === 0 ? "SUPER_ADMIN" : "USER",
+      },
+    });
+  });
+}
+
 export async function upsertGitHubUser(input: UpsertGitHubUserInput) {
   return prisma.$transaction(async (tx: any) => {
     const existing = await tx.user.findUnique({

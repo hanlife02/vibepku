@@ -45,6 +45,19 @@ export default async function LoginPage({
                 GitHub OAuth 还没有配置。请添加 GITHUB_CLIENT_ID 和 GITHUB_CLIENT_SECRET。
               </div>
             )}
+            {params.missing === "casdoor" && (
+              <div style={{
+                padding: '14px 20px',
+                borderRadius: 12,
+                background: 'rgba(248, 113, 113, 0.1)',
+                border: '1px solid rgba(248, 113, 113, 0.2)',
+                color: 'var(--red)',
+                fontSize: 13,
+                marginBottom: 24,
+              }}>
+                Casdoor OAuth 还没有配置。请添加 CASDOOR_ENDPOINT、CASDOOR_CLIENT_ID 和 CASDOOR_CLIENT_SECRET。
+              </div>
+            )}
             {params.error && (
               <div style={{
                 padding: '14px 20px',
@@ -63,6 +76,9 @@ export default async function LoginPage({
               <a className="btn-primary" href="/auth/github" style={{ justifyContent: 'center', padding: '14px 24px' }}>
                 <Icons.Github size={18} />
                 使用 GitHub 继续
+              </a>
+              <a className="btn-secondary" href="/auth/casdoor" style={{ justifyContent: 'center', padding: '14px 24px' }}>
+                使用 Casdoor 继续
               </a>
               {process.env.NODE_ENV !== "production" && (
                 <Link className="btn-secondary" href="/auth/dev-login" style={{ justifyContent: 'center', padding: '14px 24px' }}>
