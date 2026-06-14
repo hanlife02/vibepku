@@ -3,49 +3,22 @@ import { Icons } from "@/app/components/icons";
 import { prisma } from "@/app/lib/db";
 import { displayCategory, fromStoredList, productWithDrafts } from "@/app/lib/products";
 
-const CATEGORY_MAP: Record<string, string> = {
-  "dev-tools": "Dev Tools",
-  creative: "Creative",
-  productivity: "Productivity",
-  education: "Education",
-  social: "Social",
-  opensource: "Open Source",
-};
-
-const categories = [
-  { id: "all", label: "全部", emoji: "✦" },
-  { id: "dev-tools", label: "开发工具", emoji: "⚙" },
-  { id: "creative", label: "创意设计", emoji: "◎" },
-  { id: "productivity", label: "效率工具", emoji: "▸" },
-  { id: "education", label: "学习教育", emoji: "◇" },
-  { id: "social", label: "社交娱乐", emoji: "◈" },
-  { id: "opensource", label: "开源项目", emoji: "⊕" },
-];
-
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ cat?: string }>;
-}) {
-  const { cat } = await searchParams;
-  const activeCat = cat && CATEGORY_MAP[cat] ? cat : "all";
-  const categoryFilter = activeCat === "all" ? undefined : CATEGORY_MAP[activeCat];
-
-  const where = {
+export default async function Home() {
+  const approvedWhere = {
     publishedId: { not: null },
     status: "APPROVED",
-    ...(categoryFilter ? { published: { category: categoryFilter } } : {}),
   };
 
-  const [products, totalApproved, pendingCount, featuredCount] = await Promise.all([
+  const [featuredProducts, totalApproved, pendingCount, featuredCount] = await Promise.all([
     prisma.product.findMany({
-      where,
+      where: { ...approvedWhere, featured: true },
       include: productWithDrafts.include,
-      orderBy: [{ featured: "desc" }, { updatedAt: "desc" }],
+      orderBy: { updatedAt: "desc" },
+      take: 6,
     }),
-    prisma.product.count({ where: { publishedId: { not: null }, status: "APPROVED" } }),
+    prisma.product.count({ where: approvedWhere }),
     prisma.product.count({ where: { status: "PENDING_REVIEW" } }),
-    prisma.product.count({ where: { publishedId: { not: null }, status: "APPROVED", featured: true } }),
+    prisma.product.count({ where: { ...approvedWhere, featured: true } }),
   ]);
 
   return (
@@ -67,9 +40,9 @@ export default async function Home({
               <Icons.Plus size={16} />
               提交作品
             </Link>
-            <a href="#gallery" className="btn-secondary">
+            <Link href="/products" className="btn-secondary">
               浏览展台
-            </a>
+            </Link>
           </div>
           <div className="hero-stats">
             <div className="stat">
@@ -111,8 +84,8 @@ export default async function Home({
       </section>
 
       {/* Explorations */}
-      {products.length > 0 && (() => {
-        const allImages = products.flatMap((p) => {
+      {featuredProducts.length > 0 && (() => {
+        const allImages = featuredProducts.flatMap((p) => {
           const draft = p.published;
           if (!draft) return [];
           const images = fromStoredList(draft.imageUrls);
@@ -139,12 +112,12 @@ export default async function Home({
                     用 AI 工具创造的作品截图，展示 Vibe Coding 的可能性。
                   </p>
                 </div>
-                <a href="#gallery" className="btn-secondary">
+                <Link href="/products" className="btn-secondary">
                   查看全部
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                     <path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
-                </a>
+                </Link>
               </div>
             </div>
             <div className="playground-track">
@@ -168,25 +141,24 @@ export default async function Home({
             <span className="dot" />
             <h2>精选目录</h2>
             <span className="line" />
-            <span className="count">{products.length} 个作品</span>
+            <span className="count">{featuredProducts.length} 个精选</span>
           </div>
 
-          <div className="cats">
-            {categories.map((c) => (
-              <Link
-                key={c.id}
-                href={c.id === "all" ? "/#gallery" : `/?cat=${c.id}#gallery`}
-                className={`cat${activeCat === c.id ? ' active' : ''}`}
-              >
-                <span style={{ marginRight: 6, opacity: 0.6 }}>{c.emoji}</span>
-                {c.label}
-              </Link>
-            ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 28 }}>
+            <p style={{ color: 'var(--t2)', fontSize: 14, lineHeight: 1.6 }}>
+              由管理员挑选的代表作品。完整作品列表可以在作品页查看。
+            </p>
+            <Link href="/products" className="btn-secondary" style={{ flexShrink: 0 }}>
+              全部作品
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </Link>
           </div>
 
-          {products.length ? (
+          {featuredProducts.length ? (
             <div className="bento-grid">
-              {products.map((product) => {
+              {featuredProducts.map((product) => {
                 const draft = product.published;
                 if (!draft) return null;
                 const images = fromStoredList(draft.imageUrls);
@@ -229,13 +201,12 @@ export default async function Home({
           ) : (
             <div className="empty-state">
               <div className="empty-state-icon">
-                <Icons.Plus size={24} />
+                <Icons.Star size={24} />
               </div>
-              <h3>还没有上线作品</h3>
-              <p>用 GitHub 登录，提交第一个 Vibe coding 作品。</p>
-              <Link href="/submit" className="btn-primary">
-                <Icons.Plus size={16} />
-                提交作品
+              <h3>还没有精选作品</h3>
+              <p>管理员设置精选后，会展示在首页。</p>
+              <Link href="/products" className="btn-primary">
+                浏览全部作品
               </Link>
             </div>
           )}
@@ -253,6 +224,7 @@ export default async function Home({
               </div>
             </div>
             <div className="footer-links">
+              <a href="/products">全部作品</a>
               <a href="/about">关于我们</a>
               <a href="/submit">提交作品</a>
             </div>

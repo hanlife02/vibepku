@@ -16,6 +16,7 @@ export async function Nav() {
 
         <nav className="nav">
           <Link href="/" className="nav-link">首页</Link>
+          <Link href="/products" className="nav-link">作品</Link>
           <Link href="/submit" className="nav-link">提交</Link>
           <Link href="/about" className="nav-link">关于</Link>
           {(user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") && (
