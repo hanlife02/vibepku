@@ -60,10 +60,10 @@ export default async function LoginPage({
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <Link className="btn-primary" href="/auth/github" style={{ justifyContent: 'center', padding: '14px 24px' }}>
+              <a className="btn-primary" href="/auth/github" style={{ justifyContent: 'center', padding: '14px 24px' }}>
                 <Icons.Github size={18} />
                 使用 GitHub 继续
-              </Link>
+              </a>
               {process.env.NODE_ENV !== "production" && (
                 <Link className="btn-secondary" href="/auth/dev-login" style={{ justifyContent: 'center', padding: '14px 24px' }}>
                   <Icons.ShieldCheck size={16} />
