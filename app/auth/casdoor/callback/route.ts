@@ -29,7 +29,8 @@ export async function GET(request: Request) {
     });
 
     await createSession(user.id);
-  } catch {
+  } catch (e) {
+    console.error("[casdoor-callback]", e);
     redirect("/login?error=casdoor");
   }
 

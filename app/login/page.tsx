@@ -68,7 +68,7 @@ export default async function LoginPage({
                 fontSize: 13,
                 marginBottom: 24,
               }}>
-                GitHub 登录失败，请重试。
+                {params.error === "casdoor" ? "Casdoor 登录失败，请重试。" : "登录失败，请重试。"}
               </div>
             )}
 
