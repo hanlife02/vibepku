@@ -4,6 +4,10 @@ import { createToken, hashToken } from "@/app/lib/crypto";
 import { getGitHubAuthorizeUrl, hasGitHubOAuthConfig } from "@/app/lib/github";
 
 export async function GET() {
+  if (process.env.GITHUB_LOGIN_ENABLED === "false") {
+    redirect("/login");
+  }
+
   if (!hasGitHubOAuthConfig()) {
     redirect("/login?missing=github");
   }

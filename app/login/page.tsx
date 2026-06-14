@@ -73,10 +73,12 @@ export default async function LoginPage({
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <a className="btn-primary" href="/auth/github" style={{ justifyContent: 'center', padding: '14px 24px' }}>
-                <Icons.Github size={18} />
-                使用 GitHub 继续
-              </a>
+              {process.env.GITHUB_LOGIN_ENABLED !== "false" && (
+                <a className="btn-primary" href="/auth/github" style={{ justifyContent: 'center', padding: '14px 24px' }}>
+                  <Icons.Github size={18} />
+                  使用 GitHub 继续
+                </a>
+              )}
               <a className="btn-secondary" href="/auth/casdoor" style={{ justifyContent: 'center', padding: '14px 24px' }}>
                 使用 Casdoor 继续
               </a>
