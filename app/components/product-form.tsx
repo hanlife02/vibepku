@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useActionState } from "react";
 import {
   AI_TOOLS,
@@ -28,9 +29,73 @@ type ProductFormProps = {
   draft?: ProductDraftLike | null;
 };
 
+async function uploadFile(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch("/api/upload", { method: "POST", body: formData });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "上传失败");
+  return data.url;
+}
+
 export function ProductForm({ action, buttonLabel, draft }: ProductFormProps) {
   const [state, formAction, pending] = useActionState(action, {});
   const selectedTools = new Set(fromStoredList(draft?.tools));
+
+  const [logoPreview, setLogoPreview] = useState(draft?.logoUrl ?? "");
+  const [imagePreviews, setImagePreviews] = useState<string[]>(() => {
+    const stored = draft?.imageUrls;
+    if (!stored) return [];
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) return parsed.filter((s: unknown) => typeof s === "string");
+    } catch {}
+    return stored.split("\n").filter(Boolean);
+  });
+  const [uploading, setUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const logoUrlInputRef = useRef<HTMLInputElement>(null);
+  const imageUrlInputRef = useRef<HTMLTextAreaElement>(null);
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadFile(file);
+      setLogoPreview(url);
+      if (logoUrlInputRef.current) logoUrlInputRef.current.value = url;
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "上传失败");
+    }
+    setUploading(false);
+    e.target.value = "";
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files?.length) return;
+    setUploading(true);
+    try {
+      const remaining = 5 - imagePreviews.length;
+      const toUpload = Array.from(files).slice(0, remaining);
+      const urls = await Promise.all(toUpload.map(uploadFile));
+      const next = [...imagePreviews, ...urls];
+      setImagePreviews(next);
+      if (imageUrlInputRef.current) imageUrlInputRef.current.value = next.join("\n");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "上传失败");
+    }
+    setUploading(false);
+    e.target.value = "";
+  }
+
+  function removeImage(index: number) {
+    const next = imagePreviews.filter((_, i) => i !== index);
+    setImagePreviews(next);
+    if (imageUrlInputRef.current) imageUrlInputRef.current.value = next.join("\n");
+  }
 
   return (
     <form className="form-grid" action={formAction}>
@@ -96,8 +161,20 @@ export function ProductForm({ action, buttonLabel, draft }: ProductFormProps) {
         <div className="form-grid">
           <div className="form-row">
             <div className="field">
-              <label htmlFor="logoUrl">Logo *</label>
-              <input className="input" id="logoUrl" name="logoUrl" type="url" defaultValue={draft?.logoUrl ?? ""} required placeholder="https://example.com/logo.png" />
+              <label>Logo *</label>
+              {logoPreview && (
+                <div style={{ marginBottom: 8, position: 'relative', display: 'inline-block' }}>
+                  <img src={logoPreview} alt="Logo preview" style={{ height: 48, borderRadius: 8, objectFit: 'contain', background: 'var(--bg-surface)', padding: 4 }} />
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" className="btn-secondary" onClick={() => logoInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: '8px 14px', flexShrink: 0 }}>
+                  {uploading ? "上传中..." : "选择文件"}
+                </button>
+                <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                <input ref={logoUrlInputRef} className="input" name="logoUrl" type="url" defaultValue={draft?.logoUrl ?? ""} required placeholder="或输入图片链接" style={{ flex: 1 }} />
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--t3)' }}>支持 PNG、JPG、WebP，最大 5MB</span>
             </div>
             <div className="field">
               <label htmlFor="demoVideoUrl">演示视频</label>
@@ -105,9 +182,29 @@ export function ProductForm({ action, buttonLabel, draft }: ProductFormProps) {
             </div>
           </div>
           <div className="field">
-            <label htmlFor="imageUrls">截图 *</label>
-            <textarea className="input" id="imageUrls" name="imageUrls" defaultValue={fromStoredList(draft?.imageUrls).join("\n")} required placeholder={"https://example.com/screenshot-1.png\nhttps://example.com/screenshot-2.png"} />
-            <span style={{ fontSize: 11, color: 'var(--t3)' }}>每行一个链接，最多 5 张</span>
+            <label>截图 *（最多 5 张）</label>
+            {imagePreviews.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                {imagePreviews.map((url, i) => (
+                  <div key={i} style={{ position: 'relative' }}>
+                    <img src={url} alt={`Screenshot ${i + 1}`} style={{ height: 64, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)' }} />
+                    <button type="button" onClick={() => removeImage(i)} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--red)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              {imagePreviews.length < 5 && (
+                <>
+                  <button type="button" className="btn-secondary" onClick={() => imageInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: '8px 14px', flexShrink: 0 }}>
+                    {uploading ? "上传中..." : "选择文件"}
+                  </button>
+                  <input ref={imageInputRef} type="file" accept="image/*" multiple onChange={handleImageUpload} style={{ display: 'none' }} />
+                </>
+              )}
+              <textarea ref={imageUrlInputRef} className="input" name="imageUrls" defaultValue={fromStoredList(draft?.imageUrls).join("\n")} required placeholder={"或每行输入一个图片链接"} style={{ flex: 1, minHeight: 60 }} />
+            </div>
+            <span style={{ fontSize: 11, color: 'var(--t3)' }}>可混合使用：上传文件 + 粘贴链接，每行一个链接</span>
           </div>
         </div>
       </div>

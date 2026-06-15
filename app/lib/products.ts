@@ -46,6 +46,8 @@ function readChecked(formData: FormData, key: string) {
 }
 
 function assertUrl(value: string, field: string) {
+  if (value.startsWith("/uploads/")) return null;
+
   try {
     const url = new URL(value);
     if (url.protocol !== "http:" && url.protocol !== "https:") {
