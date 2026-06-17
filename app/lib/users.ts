@@ -1,4 +1,6 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/app/lib/db";
+import { shouldGrantInitialSuperAdmin } from "@/app/lib/user-roles";
 
 type UpsertGitHubUserInput = {
   githubId: string;
@@ -15,9 +17,20 @@ type UpsertCasdoorUserInput = {
 };
 
 export async function upsertCasdoorUser(input: UpsertCasdoorUserInput) {
-  return prisma.$transaction(async (tx: any) => {
+  const casdoorId = input.casdoorId.trim();
+  if (!casdoorId) {
+    throw new Error("Casdoor user id missing");
+  }
+
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const existing = await tx.user.findUnique({
-      where: { casdoorId: input.casdoorId },
+      where: { casdoorId },
+    });
+    const superAdminCount = await tx.user.count({ where: { role: "SUPER_ADMIN" } });
+    const grantSuperAdmin = shouldGrantInitialSuperAdmin({
+      provider: "casdoor",
+      providerId: casdoorId,
+      superAdminCount,
     });
 
     if (existing) {
@@ -27,28 +40,38 @@ export async function upsertCasdoorUser(input: UpsertCasdoorUserInput) {
           username: input.username,
           name: input.name,
           avatarUrl: input.avatarUrl,
+          ...(grantSuperAdmin ? { role: "SUPER_ADMIN" } : {}),
         },
       });
     }
 
-    const userCount = await tx.user.count();
-
     return tx.user.create({
       data: {
-        casdoorId: input.casdoorId,
+        casdoorId,
         username: input.username,
         name: input.name,
         avatarUrl: input.avatarUrl,
-        role: userCount === 0 ? "SUPER_ADMIN" : "USER",
+        role: grantSuperAdmin ? "SUPER_ADMIN" : "USER",
       },
     });
   });
 }
 
 export async function upsertGitHubUser(input: UpsertGitHubUserInput) {
-  return prisma.$transaction(async (tx: any) => {
+  const githubId = input.githubId.trim();
+  if (!githubId) {
+    throw new Error("GitHub user id missing");
+  }
+
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const existing = await tx.user.findUnique({
-      where: { githubId: input.githubId },
+      where: { githubId },
+    });
+    const superAdminCount = await tx.user.count({ where: { role: "SUPER_ADMIN" } });
+    const grantSuperAdmin = shouldGrantInitialSuperAdmin({
+      provider: "github",
+      providerId: githubId,
+      superAdminCount,
     });
 
     if (existing) {
@@ -58,19 +81,18 @@ export async function upsertGitHubUser(input: UpsertGitHubUserInput) {
           username: input.username,
           name: input.name,
           avatarUrl: input.avatarUrl,
+          ...(grantSuperAdmin ? { role: "SUPER_ADMIN" } : {}),
         },
       });
     }
 
-    const userCount = await tx.user.count();
-
     return tx.user.create({
       data: {
-        githubId: input.githubId,
+        githubId,
         username: input.username,
         name: input.name,
         avatarUrl: input.avatarUrl,
-        role: userCount === 0 ? "SUPER_ADMIN" : "USER",
+        role: grantSuperAdmin ? "SUPER_ADMIN" : "USER",
       },
     });
   });

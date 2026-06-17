@@ -3,7 +3,7 @@ import { updateProductDraft } from "@/app/actions/products";
 import { ProductForm } from "@/app/components/product-form";
 import { prisma } from "@/app/lib/db";
 import { displayStatus, productWithDrafts } from "@/app/lib/products";
-import { getCurrentUser } from "@/app/lib/session";
+import { canAccessAdmin, getCurrentUser, isBanned } from "@/app/lib/session";
 
 export default async function EditProductPage({
   params,
@@ -20,7 +20,8 @@ export default async function EditProductPage({
   });
 
   if (!product) notFound();
-  if (product.submitterId !== user.id && user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") redirect("/dashboard");
+  if (isBanned(user)) redirect("/dashboard");
+  if (product.submitterId !== user.id && !canAccessAdmin(user)) redirect("/dashboard");
 
   const draft = product.pendingDraft ?? product.published;
   const action = updateProductDraft.bind(null, product.id);

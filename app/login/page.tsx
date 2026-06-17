@@ -9,7 +9,7 @@ export default async function LoginPage({
   searchParams: Promise<{ missing?: string; error?: string }>;
 }) {
   const user = await getCurrentUser();
-  if (user) redirect("/submit");
+  if (user) redirect(user.bannedAt ? "/dashboard" : "/submit");
   const params = await searchParams;
 
   return (

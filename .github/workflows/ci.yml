@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  verify:
+    name: Test, Typecheck, Build
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: file:./ci.db
+      NEXT_PUBLIC_APP_URL: http://localhost:3001
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+
+      - name: Apply database migrations
+        run: pnpm run db:deploy
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Check production environment rules
+        run: pnpm run check:env
+        env:
+          DATABASE_URL: postgresql://user:pass@example.com:5432/vibepku
+          NEXT_PUBLIC_APP_URL: https://vibepku.example
+          GITHUB_CLIENT_ID: github-client
+          GITHUB_CLIENT_SECRET: github-secret
+          INITIAL_SUPER_ADMIN_GITHUB_IDS: "123456"
+          UPLOAD_STORAGE_DRIVER: s3
+          S3_BUCKET: vibepku
+          S3_REGION: auto
+          S3_ACCESS_KEY_ID: access
+          S3_SECRET_ACCESS_KEY: secret
+          S3_PUBLIC_BASE_URL: https://cdn.example.com/uploads
+          S3_FORCE_PATH_STYLE: "true"
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Build
+        run: pnpm run build

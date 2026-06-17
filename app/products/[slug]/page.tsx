@@ -1,15 +1,62 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icons } from "@/app/components/icons";
 import { prisma } from "@/app/lib/db";
 import { displayCategory, fromStoredList, productWithDrafts } from "@/app/lib/products";
 import { getCurrentUser } from "@/app/lib/session";
+import { absoluteUrl } from "@/app/lib/site-url";
+
+type ProductDetailParams = {
+  params: Promise<{ slug: string }>;
+};
+
+export async function generateMetadata({
+  params,
+}: ProductDetailParams): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    include: { published: true },
+  });
+
+  if (!product?.published) {
+    return {
+      title: "作品不存在 | VibePKU",
+    };
+  }
+
+  const draft = product.published;
+  const images = fromStoredList(draft.imageUrls);
+  const title = `${draft.name} | VibePKU`;
+  const url = absoluteUrl(`/products/${product.slug}`);
+
+  return {
+    title,
+    description: draft.tagline,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title,
+      description: draft.tagline,
+      url,
+      siteName: "VibePKU",
+      images: images[0] ? [{ url: images[0], alt: draft.name }] : undefined,
+      type: "website",
+    },
+    twitter: {
+      card: images[0] ? "summary_large_image" : "summary",
+      title,
+      description: draft.tagline,
+      images: images[0] ? [images[0]] : undefined,
+    },
+  };
+}
 
 export default async function ProductDetailPage({
   params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+}: ProductDetailParams) {
   const { slug } = await params;
   const [product, user] = await Promise.all([
     prisma.product.findUnique({

@@ -19,6 +19,8 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const saved = (localStorage.getItem("theme") as Theme) || "system";
+    // The persisted theme can only be read after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(saved);
     applyTheme(saved);
     setMounted(true);

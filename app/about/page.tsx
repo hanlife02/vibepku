@@ -144,9 +144,9 @@ export default async function AboutPage() {
               <Icons.Plus size={16} />
               提交作品
             </Link>
-            <a href="/" className="btn-secondary">
+            <Link href="/" className="btn-secondary">
               浏览展台
-            </a>
+            </Link>
           </div>
         </section>
       </div>

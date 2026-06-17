@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { Icons } from "@/app/components/icons";
 import { prisma } from "@/app/lib/db";
-import { displayCategory, fromStoredList, productWithDrafts } from "@/app/lib/products";
+import {
+  displayCategory,
+  fromStoredList,
+  pendingReviewProductWhere,
+  productWithDrafts,
+  publishedProductWhere,
+} from "@/app/lib/products";
 
 export default async function Home() {
-  const approvedWhere = {
-    publishedId: { not: null },
-    status: "APPROVED",
-  };
+  const approvedWhere = publishedProductWhere;
 
   const [featuredProducts, totalApproved, pendingCount, featuredCount] = await Promise.all([
     prisma.product.findMany({
@@ -17,7 +20,7 @@ export default async function Home() {
       take: 6,
     }),
     prisma.product.count({ where: approvedWhere }),
-    prisma.product.count({ where: { status: "PENDING_REVIEW" } }),
+    prisma.product.count({ where: pendingReviewProductWhere }),
     prisma.product.count({ where: { ...approvedWhere, featured: true } }),
   ]);
 
@@ -224,9 +227,9 @@ export default async function Home() {
               </div>
             </div>
             <div className="footer-links">
-              <a href="/products">全部作品</a>
-              <a href="/about">关于我们</a>
-              <a href="/submit">提交作品</a>
+              <Link href="/products">全部作品</Link>
+              <Link href="/about">关于我们</Link>
+              <Link href="/submit">提交作品</Link>
             </div>
             <div className="footer-copy">© 2026 VibePKU</div>
           </div>

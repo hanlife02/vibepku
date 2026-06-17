@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { Icons } from "@/app/components/icons";
 import { prisma } from "@/app/lib/db";
-import { displayCategory, fromStoredList, productWithDrafts } from "@/app/lib/products";
+import {
+  displayCategory,
+  fromStoredList,
+  productWithDrafts,
+  publishedProductWhere,
+} from "@/app/lib/products";
 
 const CATEGORY_MAP: Record<string, string> = {
   "dev-tools": "Dev Tools",
@@ -32,8 +37,7 @@ export default async function ProductsPage({
   const categoryFilter = activeCat === "all" ? undefined : CATEGORY_MAP[activeCat];
 
   const where = {
-    publishedId: { not: null },
-    status: "APPROVED",
+    ...publishedProductWhere,
     ...(categoryFilter ? { published: { category: categoryFilter } } : {}),
   };
 

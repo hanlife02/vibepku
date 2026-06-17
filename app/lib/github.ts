@@ -1,3 +1,5 @@
+import { siteOrigin } from "@/app/lib/site-url";
+
 type GitHubTokenResponse = {
   access_token?: string;
   error?: string;
@@ -16,7 +18,7 @@ export function hasGitHubOAuthConfig() {
 }
 
 export function getGitHubAuthorizeUrl(state: string) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = siteOrigin();
   const url = new URL("https://github.com/login/oauth/authorize");
   url.searchParams.set("client_id", process.env.GITHUB_CLIENT_ID ?? "");
   url.searchParams.set("redirect_uri", `${appUrl}/auth/github/callback`);
@@ -26,7 +28,7 @@ export function getGitHubAuthorizeUrl(state: string) {
 }
 
 export async function exchangeGitHubCode(code: string) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = siteOrigin();
   const response = await fetch("https://github.com/login/oauth/access_token", {
     method: "POST",
     headers: {

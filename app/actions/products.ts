@@ -1,5 +1,6 @@
 "use server";
 
+import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/app/lib/db";
@@ -7,21 +8,50 @@ import { isBanned, requireAdmin, requireUser } from "@/app/lib/session";
 import {
   createSlug,
   draftData,
+  isUniqueConstraintOn,
   parseProductForm,
+  slugCandidate,
+  statusAfterDraftSubmission,
+  type ProductFormValues,
   type ProductFormState,
 } from "@/app/lib/products";
 
-async function uniqueSlug(name: string) {
-  const base = createSlug(name);
-  let slug = base;
-  let index = 2;
+const MAX_SLUG_ATTEMPTS = 20;
 
-  while (await prisma.product.findUnique({ where: { slug } })) {
-    slug = `${base}-${index}`;
-    index += 1;
+async function createProductWithDraft(values: ProductFormValues, submitterId: string) {
+  const baseSlug = createSlug(values.name);
+
+  for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt += 1) {
+    const slug = slugCandidate(baseSlug, attempt);
+
+    try {
+      return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const createdProduct = await tx.product.create({
+          data: {
+            slug,
+            submitterId,
+            status: "PENDING_REVIEW",
+          },
+        });
+
+        const draft = await tx.productDraft.create({
+          data: {
+            productId: createdProduct.id,
+            ...draftData(values),
+          },
+        });
+
+        return tx.product.update({
+          where: { id: createdProduct.id },
+          data: { pendingDraftId: draft.id },
+        });
+      });
+    } catch (error) {
+      if (!isUniqueConstraintOn(error, "slug")) throw error;
+    }
   }
 
-  return slug;
+  throw new Error("无法生成唯一作品链接，请稍后重试。");
 }
 
 export async function submitProduct(
@@ -38,27 +68,7 @@ export async function submitProduct(
     return { error: parsed };
   }
 
-  const product = await prisma.$transaction(async (tx: any) => {
-    const createdProduct = await tx.product.create({
-      data: {
-        slug: await uniqueSlug(parsed.name),
-        submitterId: user.id,
-        status: "PENDING_REVIEW",
-      },
-    });
-
-    const draft = await tx.productDraft.create({
-      data: {
-        productId: createdProduct.id,
-        ...draftData(parsed),
-      },
-    });
-
-    return tx.product.update({
-      where: { id: createdProduct.id },
-      data: { pendingDraftId: draft.id },
-    });
-  });
+  const product = await createProductWithDraft(parsed, user.id);
 
   revalidatePath("/");
   revalidatePath("/dashboard");
@@ -88,7 +98,7 @@ export async function updateProductDraft(
     return { error: parsed };
   }
 
-  await prisma.$transaction(async (tx: any) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const draft = await tx.productDraft.create({
       data: {
         productId,
@@ -100,7 +110,7 @@ export async function updateProductDraft(
       where: { id: productId },
       data: {
         pendingDraftId: draft.id,
-        status: "PENDING_REVIEW",
+        status: statusAfterDraftSubmission(product),
         adminNote: null,
         reviewedAt: null,
       },

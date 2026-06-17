@@ -19,21 +19,6 @@ type DraftData = {
   imagePreviews: string[];
 };
 
-const emptyDraft: DraftData = {
-  name: "",
-  websiteUrl: "",
-  tagline: "",
-  category: "",
-  tags: "",
-  logoUrl: "",
-  demoVideoUrl: "",
-  imageUrls: "",
-  tools: [],
-  buildStory: "",
-  logoPreview: "",
-  imagePreviews: [],
-};
-
 function readDraftData(
   form: HTMLFormElement,
   logoUrlInput: HTMLInputElement | null,
@@ -119,8 +104,9 @@ export function useFormDraft({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const controlledRef = useRef({ logoPreview, imagePreviews });
 
-  // Keep controlled state refs in sync
-  controlledRef.current = { logoPreview, imagePreviews };
+  useEffect(() => {
+    controlledRef.current = { logoPreview, imagePreviews };
+  }, [logoPreview, imagePreviews]);
 
   const saveDraft = useCallback(() => {
     const form = formRef.current;

@@ -2,7 +2,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { hashToken } from "@/app/lib/crypto";
 import { createSession } from "@/app/lib/session";
-import { exchangeCasdoorCode, fetchCasdoorUser } from "@/app/lib/casdoor";
+import {
+  exchangeCasdoorCode,
+  fetchCasdoorUser,
+  normalizeCasdoorUser,
+} from "@/app/lib/casdoor";
 import { upsertCasdoorUser } from "@/app/lib/users";
 
 export async function GET(request: Request) {
@@ -20,13 +24,7 @@ export async function GET(request: Request) {
   try {
     const accessToken = await exchangeCasdoorCode(code);
     const casdoorUser = await fetchCasdoorUser(accessToken);
-    const user = await upsertCasdoorUser({
-      casdoorId: casdoorUser.sub ?? "",
-      username:
-        casdoorUser.preferred_username ?? casdoorUser.name ?? "unknown",
-      name: casdoorUser.name,
-      avatarUrl: casdoorUser.picture,
-    });
+    const user = await upsertCasdoorUser(normalizeCasdoorUser(casdoorUser));
 
     await createSession(user.id);
   } catch (e) {

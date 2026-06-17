@@ -1,31 +1,44 @@
 {
   "name": "vibepku",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9.0",
+    "pnpm": ">=10.28.0"
+  },
   "scripts": {
     "dev": "WATCHPACK_POLLING=true next dev --webpack --port 3001",
     "build": "next build",
     "start": "next start --port 6382",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
+    "lint": "eslint .",
+    "test": "node --import tsx --test tests/**/*.test.ts",
+    "smoke": "node --import tsx scripts/smoke.ts",
+    "check:env": "node --import tsx scripts/check-env.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "prisma:generate": "prisma generate"
   },
   "dependencies": {
-    "@prisma/client": "^6.16.3",
-    "lucide-react": "latest",
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest"
+    "@aws-sdk/client-s3": "3.1070.0",
+    "@prisma/client": "6.19.3",
+    "lucide-react": "1.17.0",
+    "next": "16.2.9",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
   },
   "devDependencies": {
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "eslint": "latest",
-    "eslint-config-next": "latest",
-    "prisma": "^6.16.3",
-    "typescript": "latest"
+    "@next/env": "16.2.9",
+    "@types/node": "25.9.2",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.9",
+    "prisma": "6.19.3",
+    "tsx": "4.22.4",
+    "typescript": "6.0.3"
   },
   "packageManager": "pnpm@10.28.2"
 }

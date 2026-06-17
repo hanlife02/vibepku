@@ -70,22 +70,30 @@ export async function requireUser() {
   return user;
 }
 
+export function isBanned(user: Pick<User, "bannedAt">) {
+  return !!user.bannedAt;
+}
+
+export function canAccessAdmin(user: Pick<User, "role" | "bannedAt">) {
+  return !isBanned(user) && (user.role === "ADMIN" || user.role === "SUPER_ADMIN");
+}
+
+export function canAccessSuperAdmin(user: Pick<User, "role" | "bannedAt">) {
+  return !isBanned(user) && user.role === "SUPER_ADMIN";
+}
+
 export async function requireAdmin() {
   const user = await requireUser();
-  if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
-    throw new Error("ADMIN_REQUIRED");
+  if (!canAccessAdmin(user)) {
+    throw new Error(isBanned(user) ? "USER_BANNED" : "ADMIN_REQUIRED");
   }
   return user;
 }
 
 export async function requireSuperAdmin() {
   const user = await requireUser();
-  if (user.role !== "SUPER_ADMIN") {
-    throw new Error("SUPER_ADMIN_REQUIRED");
+  if (!canAccessSuperAdmin(user)) {
+    throw new Error(isBanned(user) ? "USER_BANNED" : "SUPER_ADMIN_REQUIRED");
   }
   return user;
-}
-
-export function isBanned(user: User) {
-  return !!user.bannedAt;
 }

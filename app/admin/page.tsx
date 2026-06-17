@@ -5,12 +5,12 @@ import { promoteToAdmin, demoteFromAdmin, banUser, unbanUser } from "@/app/actio
 import { Icons } from "@/app/components/icons";
 import { prisma } from "@/app/lib/db";
 import {
-  displayCategory,
   displayStatus,
-  fromStoredList,
+  pendingReviewProductWhere,
+  publishedProductWhere,
   productWithDrafts,
 } from "@/app/lib/products";
-import { getCurrentUser } from "@/app/lib/session";
+import { canAccessAdmin, getCurrentUser } from "@/app/lib/session";
 
 function StatusPill({ status }: { status: string }) {
   const className =
@@ -24,17 +24,17 @@ function StatusPill({ status }: { status: string }) {
 export default async function AdminPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") redirect("/dashboard");
+  if (!canAccessAdmin(user)) redirect("/dashboard");
   const isSuperAdmin = user.role === "SUPER_ADMIN";
 
   const [pendingProducts, approvedProducts, rejectedProducts, allUsers] = await Promise.all([
     prisma.product.findMany({
-      where: { status: "PENDING_REVIEW" },
+      where: pendingReviewProductWhere,
       include: productWithDrafts.include,
       orderBy: { updatedAt: "asc" },
     }),
     prisma.product.findMany({
-      where: { publishedId: { not: null } },
+      where: publishedProductWhere,
       include: productWithDrafts.include,
       orderBy: [{ featured: "desc" }, { updatedAt: "desc" }],
     }),

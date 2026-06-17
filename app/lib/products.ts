@@ -33,20 +33,54 @@ export const productWithDrafts = Prisma.validator<Prisma.ProductDefaultArgs>()({
 
 export type ProductWithDrafts = Prisma.ProductGetPayload<typeof productWithDrafts>;
 
+export const publishedProductWhere = {
+  publishedId: { not: null },
+} satisfies Prisma.ProductWhereInput;
+
+export const pendingReviewProductWhere = {
+  pendingDraftId: { not: null },
+  status: { not: "REJECTED" },
+} satisfies Prisma.ProductWhereInput;
+
+export function statusAfterDraftSubmission(product: Pick<ProductWithDrafts, "publishedId">) {
+  return product.publishedId ? "APPROVED" : "PENDING_REVIEW";
+}
+
+export function slugCandidate(base: string, attempt: number) {
+  return attempt === 0 ? base : `${base}-${attempt + 1}`;
+}
+
+export function isUniqueConstraintOn(error: unknown, field: string) {
+  if (!error || typeof error !== "object") return false;
+
+  const prismaError = error as {
+    code?: unknown;
+    meta?: { target?: unknown };
+  };
+  if (prismaError.code !== "P2002") return false;
+
+  const target = prismaError.meta?.target;
+  if (typeof target === "string") return target === field || target.includes(field);
+  return Array.isArray(target) && target.includes(field);
+}
+
 function readString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
 }
 
 function readChecked(formData: FormData, key: string) {
-  return formData
+  return Array.from(new Set(formData
     .getAll(key)
     .map((item) => (typeof item === "string" ? item.trim() : ""))
-    .filter(Boolean);
+    .filter(Boolean)));
 }
 
 function assertUrl(value: string, field: string) {
-  if (value.startsWith("/uploads/")) return null;
+  const localUploadBaseUrl = (process.env.UPLOAD_PUBLIC_BASE_URL ?? "/uploads").replace(/\/+$/g, "");
+  if (localUploadBaseUrl.startsWith("/") && value.startsWith(`${localUploadBaseUrl}/`)) {
+    return null;
+  }
 
   try {
     const url = new URL(value);
@@ -106,6 +140,10 @@ export function parseProductForm(formData: FormData): ProductFormValues | string
 
   if (tools.length === 0) {
     return "请至少选择一个 AI coding 工具。";
+  }
+
+  if (tools.some((tool) => !AI_TOOLS.includes(tool as (typeof AI_TOOLS)[number]))) {
+    return "请选择有效的 AI coding 工具。";
   }
 
   if (!buildStory || buildStory.length > 1000) {
