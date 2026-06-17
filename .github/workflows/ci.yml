@@ -44,7 +44,7 @@ jobs:
       - name: Check production environment rules
         run: pnpm run check:env
         env:
-          DATABASE_URL: postgresql://user:pass@example.com:5432/vibepku
+          DATABASE_URL: file:/data/vibepku.db
           NEXT_PUBLIC_APP_URL: https://vibepku.example
           GITHUB_CLIENT_ID: github-client
           GITHUB_CLIENT_SECRET: github-secret

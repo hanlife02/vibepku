@@ -3,7 +3,7 @@ import test from "node:test";
 import { checkProductionEnv, formatEnvCheck } from "../scripts/check-env";
 
 const baseEnv = {
-  DATABASE_URL: "postgresql://user:pass@example.com:5432/vibepku",
+  DATABASE_URL: "file:/data/vibepku.db",
   NEXT_PUBLIC_APP_URL: "https://vibepku.example",
   GITHUB_CLIENT_ID: "github-client",
   GITHUB_CLIENT_SECRET: "github-secret",
@@ -52,6 +52,15 @@ test("checkProductionEnv rejects localhost app URLs", () => {
   });
 
   assert.match(result.errors.join("\n"), /must not point to localhost/);
+});
+
+test("checkProductionEnv rejects database URLs that do not match the SQLite schema", () => {
+  const result = checkProductionEnv({
+    ...baseEnv,
+    DATABASE_URL: "postgresql://user:pass@example.com:5432/vibepku",
+  });
+
+  assert.match(result.errors.join("\n"), /SQLite provider/);
 });
 
 test("checkProductionEnv requires initial admin ids for a configured provider", () => {

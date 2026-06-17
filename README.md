@@ -54,13 +54,13 @@ GitHub 请使用账号的 numeric id，Casdoor 请使用用户 `sub`。当数据
 
 ## 生产部署注意事项
 
-- 生产环境必须设置 `DATABASE_URL` 和 `NEXT_PUBLIC_APP_URL`。
+- 生产环境必须设置 `DATABASE_URL` 和 `NEXT_PUBLIC_APP_URL`。当前 Prisma schema 使用 SQLite，`DATABASE_URL` 必须是 `file:` URL，并且部署平台必须提供持久化磁盘和备份。
 - 生产环境必须设置 `INITIAL_SUPER_ADMIN_GITHUB_IDS` 或 `INITIAL_SUPER_ADMIN_CASDOOR_IDS` 来初始化后台管理员。
 - 首次部署和每次 schema 变更后，先运行 `pnpm run db:deploy` 应用 Prisma migrations。
 - 部署前运行 `pnpm run check:env`，确认生产环境变量足以支持登录、管理员初始化和上传。
 - 至少配置一种登录方式：GitHub OAuth 或 Casdoor OAuth。
 - `/auth/dev-login` 只在非生产环境可用，生产环境会回到登录页。
-- 上传接口默认把图片写入 `public/uploads`，适合持久化磁盘部署；如果部署到 Vercel、Netlify 等无状态平台，请把 `UPLOAD_STORAGE_DRIVER` 设为 `s3`，并配置 S3/R2 兼容对象存储。
+- 上传接口默认把图片写入 `public/uploads`，适合持久化磁盘部署；如果部署到 Vercel、Netlify 等无状态平台，请先迁移数据库方案，并把 `UPLOAD_STORAGE_DRIVER` 设为 `s3`，配置 S3/R2 兼容对象存储。
 - 上传文件会按真实文件头限制为 PNG、JPG、GIF、WebP，单个文件最大 5MB。
 - 部署后可以访问 `/api/health` 检查应用和数据库连通性；正常返回 HTTP 200，数据库不可用时返回 HTTP 503。
 - 部署后会提供 `/robots.txt` 和 `/sitemap.xml`；sitemap 会包含已上线作品详情页。

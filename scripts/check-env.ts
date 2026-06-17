@@ -68,7 +68,9 @@ export function checkProductionEnv(env: Env = process.env): EnvCheckResult {
 
   if (!databaseUrl) {
     errors.push("DATABASE_URL is required.");
-  } else if (databaseUrl.startsWith("file:")) {
+  } else if (!databaseUrl.startsWith("file:")) {
+    errors.push("DATABASE_URL must use a file: URL because this Prisma schema uses the SQLite provider.");
+  } else {
     warnings.push("DATABASE_URL uses SQLite; make sure the production filesystem is persistent and backed up.");
   }
 
