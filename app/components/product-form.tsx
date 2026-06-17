@@ -9,6 +9,7 @@ import {
   fromStoredList,
   type ProductFormState,
 } from "@/app/lib/product-shared";
+import { useFormDraft } from "@/app/hooks/use-form-draft";
 
 type ProductDraftLike = {
   name: string;
@@ -27,6 +28,7 @@ type ProductFormProps = {
   action: (state: ProductFormState, formData: FormData) => Promise<ProductFormState>;
   buttonLabel: string;
   draft?: ProductDraftLike | null;
+  enableDraft?: boolean;
 };
 
 async function uploadFile(file: File): Promise<string> {
@@ -38,9 +40,11 @@ async function uploadFile(file: File): Promise<string> {
   return data.url;
 }
 
-export function ProductForm({ action, buttonLabel, draft }: ProductFormProps) {
+export function ProductForm({ action, buttonLabel, draft, enableDraft }: ProductFormProps) {
   const [state, formAction, pending] = useActionState(action, {});
   const selectedTools = new Set(fromStoredList(draft?.tools));
+
+  const formRef = useRef<HTMLFormElement>(null);
 
   const [logoPreview, setLogoPreview] = useState(draft?.logoUrl ?? "");
   const [imagePreviews, setImagePreviews] = useState<string[]>(() => {
@@ -57,6 +61,17 @@ export function ProductForm({ action, buttonLabel, draft }: ProductFormProps) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const logoUrlInputRef = useRef<HTMLInputElement>(null);
   const imageUrlInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const { clearDraft } = useFormDraft({
+    enabled: enableDraft === true && !draft,
+    formRef,
+    logoUrlInputRef,
+    imageUrlInputRef,
+    logoPreview,
+    imagePreviews,
+    setLogoPreview,
+    setImagePreviews,
+  });
 
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -98,7 +113,7 @@ export function ProductForm({ action, buttonLabel, draft }: ProductFormProps) {
   }
 
   return (
-    <form className="form-grid" action={formAction}>
+    <form ref={formRef} className="form-grid" action={formAction} onSubmit={() => clearDraft()}>
       {state.error && (
         <div style={{
           padding: '14px 20px',

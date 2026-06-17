@@ -1,7 +1,27 @@
 {
   "permissions": {
     "allow": [
-      "Bash(curl -s http://localhost:3001)"
+      "Bash(curl -s http://localhost:3001)",
+      "Bash(curl -s https://vibepku.com/login)",
+      "Bash(curl -s -D - -o /dev/null \"https://vibepku.com/auth/github/callback?code=test&state=test\")",
+      "Bash(curl -sv -o /dev/null \"https://vibepku.com/auth/github\")",
+      "Bash(curl -s -c /tmp/vc.txt -D - -o /dev/null \"https://vibepku.com/auth/github\")",
+      "Bash(curl -s -b /tmp/vc.txt -D - -o /dev/null \"https://github.com\")",
+      "Bash(curl -sv \"https://vibepku.com/auth/github/callback?code=fake_code&state=fake_state\")",
+      "Bash(dig +short *)",
+      "Bash(host *)",
+      "Bash(curl -sv -o /dev/null \"https://chat.20050911.com/api/auth/signin/github\")",
+      "Bash(curl -sv -o /dev/null \"https://chat.20050911.com/api/auth/csrf\")",
+      "Bash(curl -sv -o /dev/null \"https://chat.20050911.com/api/auth/providers\")",
+      "Bash(curl -s \"https://chat.20050911.com/signin\")",
+      "WebFetch(domain:github.com)",
+      "Bash(curl -sI \"https://chat.20050911.com/signin\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(ssh new-ethan *)",
+      "Bash(curl -s \"https://auth.20050911.com/api/get-organizations\")",
+      "Bash(npx tsc *)"
     ]
   }
 }

@@ -34,7 +34,7 @@ export default async function SubmitPage() {
       <div className="shell" style={{ maxWidth: 720, paddingBottom: 80 }}>
         <div className="card">
           <div className="card-body">
-            <ProductForm action={submitProduct} buttonLabel="提交审核" />
+            <ProductForm action={submitProduct} buttonLabel="提交审核" enableDraft />
           </div>
         </div>
 
