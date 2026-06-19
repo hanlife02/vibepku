@@ -138,16 +138,12 @@ export function parseProductForm(formData: FormData): ProductFormValues | string
     return "请选择作品分类。";
   }
 
-  if (tools.length === 0) {
-    return "请至少选择一个 AI coding 工具。";
-  }
-
   if (tools.some((tool) => !AI_TOOLS.includes(tool as (typeof AI_TOOLS)[number]))) {
     return "请选择有效的 AI coding 工具。";
   }
 
-  if (!buildStory || buildStory.length > 1000) {
-    return "请填写构建故事，且不要超过 1000 个字符。";
+  if (buildStory.length > 1000) {
+    return "构建故事不要超过 1000 个字符。";
   }
 
   return {

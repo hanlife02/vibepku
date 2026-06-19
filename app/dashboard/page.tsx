@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ClearProductDraft } from "@/app/components/clear-product-draft";
 import { Icons } from "@/app/components/icons";
 import { prisma } from "@/app/lib/db";
 import { displayStatus, productWithDrafts, visibleDraft } from "@/app/lib/products";
@@ -23,6 +24,7 @@ export default async function DashboardPage({
 
   return (
     <div>
+      {params.submitted && <ClearProductDraft />}
       <div className="page-header" style={{ textAlign: 'left', paddingBottom: 32 }}>
         <div className="shell" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <div>

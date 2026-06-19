@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useActionState } from "react";
 import {
   AI_TOOLS,
@@ -40,9 +40,21 @@ async function uploadFile(file: File): Promise<string> {
   return data.url;
 }
 
+function knownTools(tools: string[], availableTools: readonly string[]) {
+  return Array.from(new Set(tools.filter((tool) => availableTools.includes(tool))));
+}
+
 export function ProductForm({ action, buttonLabel, draft, enableDraft }: ProductFormProps) {
   const [state, formAction, pending] = useActionState(action, {});
-  const selectedTools = new Set(fromStoredList(draft?.tools));
+  const availableTools = AI_TOOLS as readonly string[];
+  const [selectedTools, setSelectedTools] = useState<string[]>(() => knownTools(fromStoredList(draft?.tools), availableTools));
+  const [toolQuery, setToolQuery] = useState("");
+  const selectedToolSet = useMemo(() => new Set(selectedTools), [selectedTools]);
+  const normalizedToolQuery = toolQuery.trim().toLowerCase();
+  const filteredTools = useMemo(() => {
+    if (!normalizedToolQuery) return availableTools;
+    return availableTools.filter((tool) => tool.toLowerCase().includes(normalizedToolQuery));
+  }, [availableTools, normalizedToolQuery]);
 
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -61,16 +73,19 @@ export function ProductForm({ action, buttonLabel, draft, enableDraft }: Product
   const imageInputRef = useRef<HTMLInputElement>(null);
   const logoUrlInputRef = useRef<HTMLInputElement>(null);
   const imageUrlInputRef = useRef<HTMLTextAreaElement>(null);
+  const replaceSelectedTools = (tools: string[]) => setSelectedTools(knownTools(tools, availableTools));
 
-  const { clearDraft } = useFormDraft({
+  const { saveDraft } = useFormDraft({
     enabled: enableDraft === true && !draft,
     formRef,
     logoUrlInputRef,
     imageUrlInputRef,
     logoPreview,
     imagePreviews,
+    selectedTools,
     setLogoPreview,
     setImagePreviews,
+    setSelectedTools: replaceSelectedTools,
   });
 
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -112,8 +127,21 @@ export function ProductForm({ action, buttonLabel, draft, enableDraft }: Product
     if (imageUrlInputRef.current) imageUrlInputRef.current.value = next.join("\n");
   }
 
+  function toggleTool(tool: string, checked: boolean) {
+    setSelectedTools((current) => {
+      if (checked) return current.includes(tool) ? current : [...current, tool];
+      return current.filter((item) => item !== tool);
+    });
+  }
+
   return (
-    <form ref={formRef} className="form-grid" action={formAction} onSubmit={() => clearDraft()}>
+    <form
+      ref={formRef}
+      className="form-grid"
+      action={formAction}
+      onSubmit={() => saveDraft()}
+      onInvalidCapture={() => saveDraft()}
+    >
       {state.error && (
         <div style={{
           padding: '14px 20px',
@@ -232,36 +260,84 @@ export function ProductForm({ action, buttonLabel, draft, enableDraft }: Product
         </div>
         <div className="form-grid">
           <div className="field">
-            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--t2)' }}>使用的 AI coding 工具</span>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-              {AI_TOOLS.map((tool) => (
+            <label htmlFor="toolSearch">使用的 AI coding 工具</label>
+            <input
+              className="input"
+              id="toolSearch"
+              type="search"
+              value={toolQuery}
+              onChange={(event) => setToolQuery(event.target.value)}
+              placeholder="搜索 Codex、Kimi Code、MiniMax、DeepSeek、Mimo..."
+            />
+            {selectedTools.map((tool) => (
+              <input key={tool} type="hidden" name="tools" value={tool} />
+            ))}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {selectedTools.map((tool) => (
+                <button
+                  key={tool}
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => toggleTool(tool, false)}
+                  style={{
+                    padding: '6px 12px',
+                    border: '1px solid var(--border)',
+                    color: 'var(--accent)',
+                    background: 'var(--accent-dim)',
+                  }}
+                >
+                  {tool} ×
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, maxHeight: 260, overflowY: 'auto', paddingRight: 4 }}>
+              {filteredTools.map((tool) => (
                 <label key={tool} style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
                   padding: '10px 14px',
                   borderRadius: 10,
-                  background: 'var(--bg-surface)',
-                  border: '1px solid var(--border)',
+                  background: selectedToolSet.has(tool) ? 'var(--accent-dim)' : 'var(--bg-surface)',
+                  border: selectedToolSet.has(tool) ? '1px solid var(--accent)' : '1px solid var(--border)',
                   cursor: 'pointer',
                   fontSize: 12,
-                  color: 'var(--t2)',
+                  color: selectedToolSet.has(tool) ? 'var(--accent)' : 'var(--t2)',
                   transition: 'all 0.2s',
                 }}>
-                  <input type="checkbox" name="tools" value={tool} defaultChecked={selectedTools.has(tool)} />
+                  <input
+                    type="checkbox"
+                    data-tool-option="true"
+                    value={tool}
+                    checked={selectedToolSet.has(tool)}
+                    onChange={(event) => toggleTool(tool, event.target.checked)}
+                  />
                   {tool}
                 </label>
               ))}
+              {filteredTools.length === 0 && (
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: 10,
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--t3)',
+                  fontSize: 12,
+                }}>
+                  没有匹配的工具，可以留空提交。
+                </div>
+              )}
             </div>
+            <span style={{ fontSize: 11, color: 'var(--t3)' }}>可选，多选；没有使用或没找到对应工具时可以留空。</span>
           </div>
           <div className="field">
-            <label htmlFor="buildStory">构建故事 *</label>
-            <textarea className="input" id="buildStory" name="buildStory" defaultValue={draft?.buildStory ?? ""} required maxLength={1000} placeholder="你用了哪些工具？花了多久？AI 帮你完成了哪些部分？" style={{ minHeight: 150 }} />
+            <label htmlFor="buildStory">构建故事</label>
+            <textarea className="input" id="buildStory" name="buildStory" defaultValue={draft?.buildStory ?? ""} maxLength={1000} placeholder="可选：你用了哪些工具？花了多久？AI 帮你完成了哪些部分？" style={{ minHeight: 150 }} />
           </div>
         </div>
       </div>
 
-      <button className="btn-primary" type="submit" disabled={pending} style={{ width: '100%', justifyContent: 'center', padding: '14px 24px' }}>
+      <button className="btn-primary" type="submit" disabled={pending} onClick={() => saveDraft()} style={{ width: '100%', justifyContent: 'center', padding: '14px 24px' }}>
         {pending ? "保存中..." : buttonLabel}
       </button>
     </form>

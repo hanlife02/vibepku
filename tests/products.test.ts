@@ -74,14 +74,38 @@ test("parseProductForm accepts configured local upload URLs", () => {
   }
 });
 
-test("parseProductForm requires at least one image and one AI tool", () => {
+test("parseProductForm requires at least one image but accepts missing build details", () => {
   const withoutImage = validFormData();
   withoutImage.set("imageUrls", "");
   assert.equal(parseProductForm(withoutImage), "请至少添加一张截图或作品图片链接。");
 
-  const withoutTool = validFormData();
-  withoutTool.delete("tools");
-  assert.equal(parseProductForm(withoutTool), "请至少选择一个 AI coding 工具。");
+  const withoutBuildDetails = validFormData();
+  withoutBuildDetails.delete("tools");
+  withoutBuildDetails.set("buildStory", "");
+
+  const parsed = parseProductForm(withoutBuildDetails);
+
+  assert.notEqual(typeof parsed, "string");
+  if (typeof parsed === "string") return;
+  assert.deepEqual(parsed.tools, []);
+  assert.equal(parsed.buildStory, "");
+});
+
+test("parseProductForm accepts expanded AI coding tools", () => {
+  const formData = validFormData();
+  formData.delete("tools");
+  formData.append("tools", "Codex");
+  formData.append("tools", "Kimi Code");
+  formData.append("tools", "MiniMax");
+  formData.append("tools", "Mimo");
+  formData.append("tools", "DeepSeek");
+  formData.append("tools", "DeepSeek Coder");
+
+  const parsed = parseProductForm(formData);
+
+  assert.notEqual(typeof parsed, "string");
+  if (typeof parsed === "string") return;
+  assert.deepEqual(parsed.tools, ["Codex", "Kimi Code", "MiniMax", "Mimo", "DeepSeek", "DeepSeek Coder"]);
 });
 
 test("parseProductForm rejects unsupported AI tools", () => {
@@ -89,6 +113,13 @@ test("parseProductForm rejects unsupported AI tools", () => {
   formData.append("tools", "Unknown Tool");
 
   assert.equal(parseProductForm(formData), "请选择有效的 AI coding 工具。");
+});
+
+test("parseProductForm rejects overlong build stories", () => {
+  const formData = validFormData();
+  formData.set("buildStory", "a".repeat(1001));
+
+  assert.equal(parseProductForm(formData), "构建故事不要超过 1000 个字符。");
 });
 
 test("parseProductForm caps submitted lists and deduplicates tools", () => {

@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useCallback } from "react";
 
-const STORAGE_KEY = "vibepku-product-draft";
+export const PRODUCT_DRAFT_STORAGE_KEY = "vibepku-product-draft";
 
 type DraftData = {
   name: string;
@@ -25,11 +25,10 @@ function readDraftData(
   imageUrlInput: HTMLTextAreaElement | null,
   logoPreview: string,
   imagePreviews: string[],
+  selectedTools: string[],
 ): DraftData {
   const val = (name: string) =>
     (form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement)?.value ?? "";
-
-  const toolsCheckboxes = form.querySelectorAll<HTMLInputElement>('input[name="tools"]:checked');
 
   return {
     name: val("name"),
@@ -40,7 +39,7 @@ function readDraftData(
     logoUrl: logoUrlInput?.value ?? "",
     demoVideoUrl: val("demoVideoUrl"),
     imageUrls: imageUrlInput?.value ?? "",
-    tools: Array.from(toolsCheckboxes).map((cb) => cb.value),
+    tools: selectedTools,
     buildStory: val("buildStory"),
     logoPreview,
     imagePreviews,
@@ -54,6 +53,7 @@ function restoreDraftData(
   imageUrlInput: HTMLTextAreaElement | null,
   setLogoPreview: (v: string) => void,
   setImagePreviews: (v: string[]) => void,
+  setSelectedTools: (v: string[]) => void,
 ) {
   const setVal = (name: string, value: string) => {
     const el = form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
@@ -71,13 +71,14 @@ function restoreDraftData(
   if (logoUrlInput) logoUrlInput.value = draft.logoUrl;
   if (imageUrlInput) imageUrlInput.value = draft.imageUrls;
 
-  const toolsCheckboxes = form.querySelectorAll<HTMLInputElement>('input[name="tools"]');
+  const toolsCheckboxes = form.querySelectorAll<HTMLInputElement>('input[data-tool-option="true"]');
   toolsCheckboxes.forEach((cb) => {
     cb.checked = draft.tools.includes(cb.value);
   });
 
   setLogoPreview(draft.logoPreview);
   setImagePreviews(draft.imagePreviews);
+  setSelectedTools(draft.tools);
 }
 
 type UseFormDraftOptions = {
@@ -87,8 +88,10 @@ type UseFormDraftOptions = {
   imageUrlInputRef: React.RefObject<HTMLTextAreaElement | null>;
   logoPreview: string;
   imagePreviews: string[];
+  selectedTools: string[];
   setLogoPreview: (v: string) => void;
   setImagePreviews: (v: string[]) => void;
+  setSelectedTools: (v: string[]) => void;
 };
 
 export function useFormDraft({
@@ -98,17 +101,21 @@ export function useFormDraft({
   imageUrlInputRef,
   logoPreview,
   imagePreviews,
+  selectedTools,
   setLogoPreview,
   setImagePreviews,
+  setSelectedTools,
 }: UseFormDraftOptions) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const controlledRef = useRef({ logoPreview, imagePreviews });
+  const controlledRef = useRef({ logoPreview, imagePreviews, selectedTools });
 
   useEffect(() => {
-    controlledRef.current = { logoPreview, imagePreviews };
-  }, [logoPreview, imagePreviews]);
+    controlledRef.current = { logoPreview, imagePreviews, selectedTools };
+  }, [logoPreview, imagePreviews, selectedTools]);
 
   const saveDraft = useCallback(() => {
+    if (!enabled) return;
+
     const form = formRef.current;
     if (!form) return;
 
@@ -118,14 +125,15 @@ export function useFormDraft({
       imageUrlInputRef.current,
       controlledRef.current.logoPreview,
       controlledRef.current.imagePreviews,
+      controlledRef.current.selectedTools,
     );
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(PRODUCT_DRAFT_STORAGE_KEY, JSON.stringify(data));
     } catch {
       // localStorage may be unavailable or quota exceeded
     }
-  }, [formRef, logoUrlInputRef, imageUrlInputRef]);
+  }, [enabled, formRef, logoUrlInputRef, imageUrlInputRef]);
 
   const debouncedSave = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -135,7 +143,7 @@ export function useFormDraft({
   const clearDraft = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(PRODUCT_DRAFT_STORAGE_KEY);
     } catch {
       // ignore
     }
@@ -149,11 +157,19 @@ export function useFormDraft({
     if (!form) return;
 
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(PRODUCT_DRAFT_STORAGE_KEY);
       if (!raw) return;
 
       const draft = JSON.parse(raw) as DraftData;
-      restoreDraftData(draft, form, logoUrlInputRef.current, imageUrlInputRef.current, setLogoPreview, setImagePreviews);
+      restoreDraftData(
+        draft,
+        form,
+        logoUrlInputRef.current,
+        imageUrlInputRef.current,
+        setLogoPreview,
+        setImagePreviews,
+        setSelectedTools,
+      );
     } catch {
       // ignore corrupt data
     }
@@ -176,6 +192,11 @@ export function useFormDraft({
     };
   }, [enabled, formRef, debouncedSave]);
 
+  useEffect(() => {
+    if (!enabled) return;
+    debouncedSave();
+  }, [enabled, logoPreview, imagePreviews, selectedTools, debouncedSave]);
+
   // Cleanup timer on unmount
   useEffect(() => {
     return () => {
@@ -183,5 +204,5 @@ export function useFormDraft({
     };
   }, []);
 
-  return { clearDraft };
+  return { saveDraft, clearDraft };
 }

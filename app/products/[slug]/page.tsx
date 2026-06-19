@@ -177,18 +177,20 @@ export default async function ProductDetailPage({
             )}
 
             {/* Build Story */}
-            <div className="card">
-              <div className="card-body">
-                <div className="form-section-title" style={{ marginBottom: 20 }}>
-                  <span className="number">STORY</span>
-                  <span className="text">构建故事</span>
-                  <span className="line" />
-                </div>
-                <div style={{ fontSize: 14, lineHeight: 1.8, color: 'var(--t2)', whiteSpace: 'pre-wrap' }}>
-                  {draft.buildStory}
+            {draft.buildStory && (
+              <div className="card">
+                <div className="card-body">
+                  <div className="form-section-title" style={{ marginBottom: 20 }}>
+                    <span className="number">STORY</span>
+                    <span className="text">构建故事</span>
+                    <span className="line" />
+                  </div>
+                  <div style={{ fontSize: 14, lineHeight: 1.8, color: 'var(--t2)', whiteSpace: 'pre-wrap' }}>
+                    {draft.buildStory}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Sidebar */}

@@ -48,7 +48,7 @@ export default async function SubmitPage() {
             {[
               "作品必须有可公开访问的网址",
               "Logo 和至少一张截图是必填项",
-              "请在构建故事里说明你用了哪些 AI coding 工具",
+              "AI coding 工具和构建故事可以补充填写，也可以留空",
               "管理员审核通过后，作品才会出现在公开页面",
             ].map((rule, i) => (
               <div key={i} style={{
