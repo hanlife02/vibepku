@@ -187,7 +187,7 @@ export function ProductForm({ action, buttonLabel, draft, enableDraft }: Product
                   {uploading ? "上传中..." : "选择文件"}
                 </button>
                 <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
-                <input ref={logoUrlInputRef} className="input" name="logoUrl" type="url" defaultValue={draft?.logoUrl ?? ""} required placeholder="或输入图片链接" style={{ flex: 1 }} />
+                <input ref={logoUrlInputRef} className="input" name="logoUrl" type="text" inputMode="url" defaultValue={draft?.logoUrl ?? ""} required placeholder="或输入图片链接" style={{ flex: 1 }} />
               </div>
               <span style={{ fontSize: 11, color: 'var(--t3)' }}>支持 PNG、JPG、WebP，最大 5MB</span>
             </div>
