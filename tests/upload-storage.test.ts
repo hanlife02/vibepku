@@ -8,6 +8,7 @@ import {
   detectImageType,
   isUploadContentLengthTooLarge,
   maxUploadSize,
+  readLocalUploadedImage,
   saveUploadedImage,
 } from "../app/lib/upload-storage";
 
@@ -71,6 +72,12 @@ test("saveUploadedImage writes to configured local storage", async () => {
     const filename = url.split("/").at(-1);
     assert.ok(filename);
     assert.deepEqual(await readFile(join(uploadDir, filename)), pngBuffer);
+
+    const servedImage = await readLocalUploadedImage(filename);
+    assert.ok(servedImage);
+    assert.equal(servedImage.contentType, "image/png");
+    assert.deepEqual(servedImage.data, pngBuffer);
+    assert.equal(await readLocalUploadedImage("../secret.png"), null);
   } finally {
     if (previousDriver === undefined) {
       delete process.env.UPLOAD_STORAGE_DRIVER;

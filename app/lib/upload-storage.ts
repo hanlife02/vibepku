@@ -1,12 +1,13 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import { join, resolve } from "path";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_MULTIPART_OVERHEAD = 1024 * 1024;
 const DEFAULT_LOCAL_UPLOAD_DIR = join(process.cwd(), "public", "uploads");
 const DEFAULT_LOCAL_PUBLIC_BASE_URL = "/uploads";
+const LOCAL_UPLOAD_FILENAME = /^[a-f0-9-]+\.(png|jpg|gif|webp)$/i;
 
 export type SupportedImage = {
   extension: "png" | "jpg" | "gif" | "webp";
@@ -82,6 +83,12 @@ function uploadDriver() {
   return driver;
 }
 
+function localUploadDir() {
+  return process.env.UPLOAD_DIR
+    ? resolve(/* turbopackIgnore: true */ process.cwd(), process.env.UPLOAD_DIR)
+    : DEFAULT_LOCAL_UPLOAD_DIR;
+}
+
 function s3Client(
   region: string,
   accessKeyId: string,
@@ -107,9 +114,7 @@ function requireEnv(name: string) {
 }
 
 async function saveToLocal(buffer: Buffer, filename: string) {
-  const uploadDir = process.env.UPLOAD_DIR
-    ? resolve(/* turbopackIgnore: true */ process.cwd(), process.env.UPLOAD_DIR)
-    : DEFAULT_LOCAL_UPLOAD_DIR;
+  const uploadDir = localUploadDir();
   const publicBaseUrl =
     process.env.UPLOAD_PUBLIC_BASE_URL ?? DEFAULT_LOCAL_PUBLIC_BASE_URL;
 
@@ -153,4 +158,26 @@ export async function saveUploadedImage(buffer: Buffer, imageType: SupportedImag
   }
 
   return saveToLocal(buffer, filename);
+}
+
+export async function readLocalUploadedImage(filename: string) {
+  if (uploadDriver() !== "local" || !LOCAL_UPLOAD_FILENAME.test(filename)) {
+    return null;
+  }
+
+  try {
+    const data = await readFile(join(localUploadDir(), filename));
+    const imageType = detectImageType(data);
+    if (!imageType) return null;
+
+    return {
+      contentType: imageType.contentType,
+      data,
+    };
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
 }
